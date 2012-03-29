@@ -1,0 +1,77 @@
+﻿<html>
+<head>
+<title>Test</title>
+<script type="text/javascript" src="oauth.js"></script> 
+<script type="text/javascript" src="sha1.js"></script> 
+<script type="text/javascript" src="jquery-1.7.2.min.js"></script> 
+<script type="text/javascript" src="jQuery.ajax.js"></script> 
+<script>
+$(document).ready(function(){
+  var serverBase = "https://openapi.kuaipan.cn/open/requestToken";
+  var consumerKey = "xcd0smRnTxXrAKf0";
+  var consumerSecret = "EPhrmb0d2Rm0ECY5";
+
+  var accessor = { "consumerSecret": consumerSecret};
+  var message = { method: "GET" , action: "https://openapi.kuaipan.cn/open/requestToken", parameters: []};
+  var signcode;
+  do{
+    message.parameters = [];
+    message.parameters.push(["oauth_version", "1.0"]);
+    message.parameters.push(["oauth_consumer_key", consumerKey]);
+    message.parameters.push(["oauth_timestamp", OAuth.timestamp()]);
+    message.parameters.push(["oauth_nonce", encodeURIComponent(OAuth.nonce(6))]);
+    message.parameters.push(["oauth_signature_method", "HMAC-SHA1"]);
+    
+    OAuth.SignatureMethod.sign(message, accessor);
+    signcode = OAuth.getParameter(message.parameters, "oauth_signature");
+  }while(signcode.indexOf("+")!=-1);
+  var tURL = message.action+"?"+OAuth.SignatureMethod.normalizeParameters(message.parameters).replace(/oauth_signature/,"oauth_signature="+OAuth.getParameter(message.parameters, "oauth_signature")+"&oauth_signature");
+
+  $.ajax({
+      url: tURL,
+      type: 'GET',
+      success: function(res) {
+          var _content = res.responseText;
+          var j = JSON.parse(_content.substring(_content.indexOf("<p>")+3,_content.indexOf("</p>")));
+          var oauth_token_secret = j.oauth_token_secret;
+          var oauth_token = j.oauth_token;
+          $("#bt").removeAttr("disabled").click(function(){
+              var accessor = { "consumerSecret": consumerSecret,"oauth_token_secret": oauth_token_secret};
+              var message = { method: "GET" , action: "https://openapi.kuaipan.cn/open/accessToken", parameters: []};
+              var signcode;
+              do{
+                message.parameters = [];
+                message.parameters.push(["oauth_version", "1.0"]);
+                message.parameters.push(["oauth_consumer_key", consumerKey]);
+                message.parameters.push(["oauth_timestamp", OAuth.timestamp()]);
+                message.parameters.push(["oauth_nonce", encodeURIComponent(OAuth.nonce(6))]);
+                message.parameters.push(["oauth_signature_method", "HMAC-SHA1"]);
+                message.parameters.push(["oauth_token", oauth_token]);
+                
+                OAuth.SignatureMethod.sign(message, accessor);
+                signcode = OAuth.getParameter(message.parameters, "oauth_signature");
+              }while(signcode.indexOf("+")!=-1);
+              var tURL = message.action+"?"+OAuth.SignatureMethod.normalizeParameters(message.parameters).replace(/oauth_signature/,"oauth_signature="+OAuth.getParameter(message.parameters, "oauth_signature")+"&oauth_signature");
+              
+                $.ajax({
+                  url: tURL,
+                  type: 'GET',
+                  success: function(res) {
+                    alert(res.responseText);
+                  }
+                });
+          });
+           window.open ("https://www.kuaipan.cn/api.php?ac=open&op=authorise&oauth_token="+oauth_token,"auth"); 
+      }
+  });
+  
+  
+});
+</script> 
+</head>
+<body>
+  <button type="submit" disabled="disabled" id="bt">获得信息</button>
+  <hr />
+  <div id="content">
+</body>
+</html>
